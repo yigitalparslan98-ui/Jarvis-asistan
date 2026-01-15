@@ -2,64 +2,86 @@ import streamlit as st
 import google.generativeai as genai
 import time
 
-# --- SAYFA AYARLARI ---
-st.set_page_config(page_title="JARVIS OS", layout="centered")
+# --- SAYFA AYARLARI (Geniş Ekran) ---
+st.set_page_config(page_title="JARVIS OS | Terminal", layout="wide")
 
+# --- GERÇEKÇİ JARVIS TEMASI (CSS) ---
 st.markdown("""
 <style>
-.stApp { background-color: #0d1a26; color: #00e6e6; }
-h1 { text-align: center; color: #00e6e6; text-shadow: 0 0 15px #00e6e6; font-family: 'Courier New', monospace; }
+    .stApp {
+        background: radial-gradient(circle, #001219 0%, #000000 100%);
+        color: #00f2ff;
+    }
+    .stChatMessage {
+        background: rgba(0, 242, 255, 0.05);
+        border: 1px solid rgba(0, 242, 255, 0.2);
+        border-radius: 15px;
+        box-shadow: 0 0 10px rgba(0, 242, 255, 0.1);
+    }
+    h1 {
+        font-family: 'Courier New', monospace;
+        text-align: center;
+        text-shadow: 0 0 20px #00f2ff;
+        letter-spacing: 5px;
+    }
+    /* Scrollbarı özelleştir */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #00f2ff; border-radius: 10px; }
 </style>
-<h1>JARVIS INTERFACE v2.3</h1>
+<h1>STARK INDUSTRIES - JARVIS v3.0</h1>
 """, unsafe_allow_html=True)
 
-# --- GEMINI AYARI ---
-# API ANAHTARINI BURAYA YAPIŞTIR
-genai.configure(api_key="AIzaSyBIL7Y0YaQ49tCYqu7aK3xIIKDj9GrZMNM")
+# --- API VE MODEL AYARI ---
+# API ANAHTARINI AŞAĞIYA YAPIŞTIR
+genai.configure(api_key="AIzaSyBhCEI1LEMr54a_dO1OqjeW77UoFnPt5iA")
 
-# Bu sefer modeli 'gemini-1.5-flash' yerine 'gemini-pro' olarak (en temel haliyle) deniyoruz
-# Eğer bu da olmazsa sistem otomatik olarak uygun modeli arayacak
-try:
-    model = genai.GenerativeModel('gemini-pro')
-except:
-    model = genai.GenerativeModel('gemini-1.5-flash')
+# 404 Hatalarını Önleyen Akıllı Model Seçici
+@st.cache_resource
+def load_model():
+    models_to_try = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+    for m_name in models_to_try:
+        try:
+            model = genai.GenerativeModel(m_name)
+            # Modeli test et
+            model.generate_content("test")
+            return model
+        except:
+            continue
+    return None
 
-# --- HAFIZA ---
+model = load_model()
+
+# --- SOHBET SİSTEMİ ---
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state.messages = [{"role": "assistant", "content": "Sistemler çevrimiçi. Size nasıl yardımcı olabilirim efendim?"}]
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- GİRİŞ VE CEVAP ---
-prompt = st.chat_input("Emredin efendim...")
-
-if prompt:
+if prompt := st.chat_input("Bir komut girin..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
-        try:
-            # Model yanıtını al
-            response = model.generate_content(prompt)
-            
-            # Yanıtı ekrana parça parça yazdır
-            for chunk in response.text.split():
-                full_response += chunk + " "
-                time.sleep(0.05)
-                message_placeholder.markdown(full_response + "▌")
-            
-            message_placeholder.markdown(full_response)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-        except Exception as e:
-            # Burası hatayı anlamamız için çok önemli
-            st.error(f"Kritik Hata: {e}")
-            st.write("Lütfen Google AI Studio'dan yeni bir API Key almayı deneyin.")
+        if model is None:
+            st.error("Üzgünüm efendim, tüm model bağlantıları başarısız oldu. Lütfen API anahtarınızı kontrol edin.")
+        else:
+            message_placeholder = st.empty()
+            full_response = ""
+            try:
+                response = model.generate_content(prompt)
+                for chunk in response.text.split():
+                    full_response += chunk + " "
+                    time.sleep(0.04)
+                    message_placeholder.markdown(full_response + "▌")
+                message_placeholder.markdown(full_response)
+                st.session_state.messages.append({"role": "assistant", "content": full_response})
+            except Exception as e:
+                st.error(f"Bağlantı Kesildi: {e}")
            
+
 
 
 

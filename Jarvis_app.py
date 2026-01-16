@@ -26,16 +26,22 @@ st.markdown("""
 <h1>ALPARSLAN INDUSTRIES - JARVIS v3.1</h1>
 """, unsafe_allow_html=True)
 
-# --- 2. GÜVENLİ API VE MODEL BAĞLANTISI (404 HATASI ÇÖZÜMÜ) ---
+# --- 2. GÜVENLİ BAĞLANTISI VE MODEL SEÇİCİ ---
 try:
     if "GOOGLE_API_KEY" in st.secrets:
         api_key = st.secrets["GOOGLE_API_KEY"]
         genai.configure(api_key=api_key)
         
-        # 404 HATASINI BİTİREN SATIR: 'models/' ön eki ile çağırıyoruz
-        model = genai.GenerativeModel('models/gemini-1.5-flash')
+        # HATA ÖNLEYİCİ: Önce Flash'ı, olmazsa Pro'yu dener.
+        # 'models/' takısı olmadan deniyoruz, kütüphane bunu daha çok sever.
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+        except:
+            # Flash çalışmazsa eski güvenilir Pro modeline geçer
+            model = genai.GenerativeModel('gemini-pro')
+            
     else:
-        st.error("Kritik Hata: API Anahtarı (Secrets) bulunamadı!")
+        st.error("Kritik Hata: API Anahtarı (Secrets) girilmemiş.")
         st.stop()
 except Exception as e:
     st.error(f"Sistem Başlatılamadı: {e}")
@@ -61,20 +67,16 @@ if prompt := st.chat_input("Bir komut girin efendim..."):
         message_placeholder = st.empty()
         full_response = ""
         try:
-            # Yanıtı alırken güvenli metot kullanıyoruz
             response = model.generate_content(prompt)
-            
-            # Yazma efekti
             for chunk in response.text.split():
                 full_response += chunk + " "
                 time.sleep(0.05)
                 message_placeholder.markdown(full_response + "▌")
-            
             message_placeholder.markdown(full_response)
             st.session_state.messages.append({"role": "assistant", "content": full_response})
-            
         except Exception as e:
-            st.error(f"Bağlantı Hatası: {e}")
+            st.error(f"Hata oluştu: {e}")
+
 
 
 

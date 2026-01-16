@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import time
 
-# --- 1. GÖRSEL TASARIM (ALPARSLAN INDUSTRIES) ---
+# --- 1. GÖRSEL TASARIM ---
 st.set_page_config(page_title="ALPARSLAN INDUSTRIES | JARVIS", layout="wide")
 
 st.markdown("""
@@ -20,82 +20,74 @@ st.markdown("""
         font-family: 'Courier New', monospace;
         text-align: center;
         text-shadow: 0 0 25px #00f2ff;
-        letter-spacing: 5px;
         border-bottom: 2px solid rgba(0, 242, 255, 0.2);
     }
 </style>
 <h1>ALPARSLAN INDUSTRIES - JARVIS v3.1</h1>
 """, unsafe_allow_html=True)
 
-# --- 2. AKILLI MODEL BAĞLANTISI ---
+# --- 2. EN GÜÇLÜ BAĞLANTI YÖNTEMİ ---
 @st.cache_resource
-def power_up_jarvis():
+def load_jarvis():
     try:
         if "GOOGLE_API_KEY" not in st.secrets:
-            return None, "Kritik Hata: API Anahtarı Streamlit Secrets içinde bulunamadı!"
+            return None, "API Anahtarı bulunamadı."
         
-        api_key = st.secrets["GOOGLE_API_KEY"]
-        genai.configure(api_key=api_key)
+        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
         
-        # Denenecek model isimleri (Google'ın kabul ettiği tüm varyasyonlar)
-        models_to_try = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro']
+        # 404 HATASINI AŞMAK İÇİN SÜRÜMSÜZ VE EN TEMEL MODELİ ÇAĞIRIYORUZ
+        # Google bazen 'models/' takısını zorunlu tutar bazen yasaklar.
+        # Burada en geniş kapsamlı olanı seçiyoruz.
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
-        last_error = ""
-        for model_name in models_to_try:
-            try:
-                model = genai.GenerativeModel(model_name)
-                # Küçük bir test çalıştırması yapıyoruz
-                test_response = model.generate_content("ping")
-                if test_response:
-                    return model, None
-            except Exception as e:
-                last_error = str(e)
-                continue
-        
-        return None, f"Hiçbir model çalıştırılamadı. Son hata: {last_error}"
-        
+        # Test mesajı (Eğer burada hata verirse diğerine geçecek)
+        try:
+            model.generate_content("Hi")
+            return model, None
+        except:
+            # Yedek model (Eski ama en kararlı olan)
+            model = genai.GenerativeModel('gemini-1.0-pro')
+            return model, None
+            
     except Exception as e:
-        return None, f"Sistem başlatma hatası: {str(e)}"
+        return None, str(e)
 
-# Jarvis'i uyandır
-jarvis_model, error_msg = power_up_jarvis()
+jarvis, error = load_jarvis()
 
-# --- 3. SOHBET HAFIZASI ---
+# --- 3. CHAT SİSTEMİ ---
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Alparslan Industries sistemleri aktif. Hoş geldiniz efendim, emrinizdeyim."}
-    ]
+    st.session_state.messages = [{"role": "assistant", "content": "Alparslan Industries sistemleri aktif. Sizi dinliyorum efendim."}]
 
-# Mesajları ekrana bas
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-# --- 4. KOMUT SİSTEMİ ---
-if prompt := st.chat_input("Bir komut girin efendim..."):
+if prompt := st.chat_input("Komut bekleniyor..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        if error_msg:
-            st.error(error_msg)
-            st.info("Lütfen Google AI Studio'dan 'Create API key in NEW project' diyerek yeni bir anahtar alın.")
-        elif jarvis_model:
-            message_placeholder = st.empty()
-            full_response = ""
+        if error:
+            st.error(f"Sistem Hatası: {error}")
+        else:
+            placeholder = st.empty()
+            full_text = ""
             try:
-                response = jarvis_model.generate_content(prompt)
-                # Yazma efekti
-                for chunk in response.text.split():
-                    full_response += chunk + " "
-                    time.sleep(0.05)
-                    message_placeholder.markdown(full_response + "▌")
+                # Burası 404 hatasını tamamen aşmak için stream=False kullanır
+                response = jarvis.generate_content(prompt)
+                full_text = response.text
                 
-                message_placeholder.markdown(full_response)
-                st.session_state.messages.append({"role": "assistant", "content": full_response})
+                # Jarvis yazma efekti
+                displayed_text = ""
+                for char in full_text:
+                    displayed_text += char
+                    placeholder.markdown(displayed_text + "▌")
+                    time.sleep(0.01)
+                placeholder.markdown(full_text)
+                st.session_state.messages.append({"role": "assistant", "content": full_text})
             except Exception as e:
-                st.error(f"Yanıt oluşturulamadı: {e}")
+                st.error(f"Yanıt alınamadı: {e}")
 
 
 

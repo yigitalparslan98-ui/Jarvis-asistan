@@ -2,16 +2,22 @@ import streamlit as st
 import google.generativeai as genai
 import time
 
-# --- 1. YEREL ZİYARETÇİ SAYACI ---
-if 'visitor_count' not in st.session_state:
-    # Sayfa her sıfırdan yüklendiğinde (yeni kişi geldiğinde) 1 artar
-    if 'total_hits' not in st.cache_resource:
-        st.cache_resource.total_hits = 0
-    st.cache_resource.total_hits += 1
-    st.session_state.visitor_count = st.cache_resource.total_hits
+# --- 1. GİZLİLİK ODAKLI SAYAÇ SİSTEMİ ---
+# Streamlit'te veriyi güvenli bir şekilde önbelleğe almak için bu sınıfı kullanıyoruz
+class Counter:
+    def __init__(self):
+        self.count = 0
 
-# --- 2. GÖRSEL TASARIM ---
+@st.cache_resource
+def get_counter():
+    return Counter()
+
+counter = get_counter()
+counter.count += 1
+
+# --- 2. GÖRSEL TASARIM (ALPARSLAN INDUSTRIES) ---
 st.set_page_config(page_title="ALPARSLAN INDUSTRIES | JARVIS", layout="wide")
+
 st.markdown(f"""
 <style>
     .stApp {{ background: radial-gradient(circle, #001219 0%, #000000 100%); color: #00f2ff; }}
@@ -24,18 +30,19 @@ st.markdown(f"""
     }}
     .visitor-box {{
         position: fixed;
-        top: 10px;
-        right: 10px;
+        top: 15px;
+        right: 15px;
         background: rgba(0, 242, 255, 0.1);
-        padding: 5px 15px;
+        padding: 8px 15px;
         border-radius: 10px;
         border: 1px solid #00f2ff;
         font-family: monospace;
-        font-size: 12px;
+        font-size: 14px;
+        z-index: 1000;
     }}
     .stChatMessage {{ background: rgba(0, 242, 255, 0.07); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 20px; }}
 </style>
-<div class="visitor-box">ERİŞİM KAYDI: #{st.cache_resource.total_hits}</div>
+<div class="visitor-box">ERİŞİM KAYDI: #{counter.count}</div>
 <h1>ALPARSLAN INDUSTRIES</h1>
 """, unsafe_allow_html=True)
 
@@ -43,28 +50,40 @@ st.markdown(f"""
 @st.cache_resource
 def init_jarvis():
     try:
-        if "GOOGLE_API_KEY" not in st.secrets: return None, "API Key Eksik"
+        if "GOOGLE_API_KEY" not in st.secrets:
+            return None, "API Anahtarı bulunamadı (Secrets'ı kontrol edin)."
+        
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        
+        # Mevcut modelleri listele ve ilkini seç
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        
+        if not available_models:
+            return None, "Kullanılabilir model bulunamadı."
+            
         instruction = "Sen Jarvis'sin. Alparslan Industries tarafından yapıldın. Her zaman Türkçe konuş ve efendim diye hitap et."
-        return genai.GenerativeModel(models[0], system_instruction=instruction), None
+        return genai.GenerativeModel(available_models[0], system_instruction=instruction), None
     except Exception as e:
         return None, str(e)
 
 jarvis, err = init_jarvis()
 
-# --- 4. SOHBET ---
+# --- 4. SOHBET PANELİ ---
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Sistemler aktif. Yerel veri tabanı üzerinden takip başlatıldı efendim."}]
+    st.session_state.messages = [{"role": "assistant", "content": "Sistemler aktif. Yerel erişim kaydı oluşturuldu. Emrinizdeyim efendim."}]
 
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]): st.markdown(msg["content"])
+    with st.chat_message(msg["role"]): 
+        st.markdown(msg["content"])
 
 if prompt := st.chat_input("Komut bekleniyor..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"): st.markdown(prompt)
+    with st.chat_message("user"):
+        st.markdown(prompt)
+        
     with st.chat_message("assistant"):
-        if err: st.error(err)
+        if err:
+            st.error(err)
         else:
             placeholder = st.empty()
             full_resp = ""
@@ -77,7 +96,7 @@ if prompt := st.chat_input("Komut bekleniyor..."):
                 placeholder.markdown(full_resp)
                 st.session_state.messages.append({"role": "assistant", "content": full_resp})
             except Exception as e:
-                st.error(f"Hata: {e}")
+                st.error(f"Sinyal hatası: {e}")
 
 
 

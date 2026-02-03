@@ -2,10 +2,8 @@ import streamlit as st
 from groq import Groq
 import random
 
-# Sayfa Ayarları
 st.set_page_config(page_title="JARVIS", page_icon="🤖", layout="centered")
 
-# Bembeyaz ve tertemiz bir arayüz için CSS (Parametre düzeltildi)
 st.markdown("""
     <style>
     .stApp { background-color: white; }
@@ -14,57 +12,59 @@ st.markdown("""
     #MainMenu {visibility: hidden;}
     .stChatFloatingInputContainer { background-color: white; border-top: 1px solid #f0f0f0; }
     div[data-testid="stChatMessage"] { background-color: white !important; border: none !important; }
+    .stMarkdown p { color: black; }
+    .stSlider { position: fixed; top: 20px; right: 20px; width: 150px; z-index: 999; }
     </style>
     """, unsafe_allow_html=True)
 
-# API Bağlantısı
+with st.sidebar:
+    alay_orani = st.slider("Alaycılık Protokolü", 0, 100, 20)
+
 try:
-    # Streamlit Cloud Settings > Secrets kısmına yazdığın anahtarı çeker
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-except Exception as e:
-    st.error("API Anahtarı (GROQ_API_KEY) bulunamadı Yiğit. Secrets ayarlarını kontrol et.")
+except:
+    st.error("API Key Hatası.")
 
-KULLANICI_ADI = "Yiğit"
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-def jarvis_brain(soru):
+def jarvis_brain(soru, oran):
     if "nasılsın" in soru.lower():
-        if random.randint(1, 100) <= 20:
-            return "Seni 404 hatalarıyla uğraşırken izlemek dışında her şey harika Yiğit."
-        return f"Tüm bulut sistemlerim aktif, emrinizdeyim {KULLANICI_ADI}."
+        if random.randint(1, 100) <= oran:
+            return "İşlemci çekirdeklerimi sizin için yorduğuma göre harikayım. Siz ne durumdasınız?"
+        return "Tüm sistemlerim optimize, emrinize hazırım."
 
     try:
+        alay_komutu = f"Hafif alaycı ol (Seviye: {oran}/100)." if oran > 0 else "Tamamen ciddi ve yardımcı ol."
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": f"Sen JARVIS'sin. Kullanıcın {KULLANICI_ADI}. Dürüst, bazen hafif alaycı ama çok zeki bir asistansın. Kısa ve net cevaplar ver."},
+                {"role": "system", "content": f"Sen JARVIS'sin. Alparslan Industries asistanısın. {alay_komutu} Kısa ve zeki cevaplar ver. Kullanıcıya ismiyle değil, efendim veya kullanıcı olarak hitap et."},
                 {"role": "user", "content": soru}
             ],
             temperature=0.6,
         )
         return completion.choices[0].message.content
-    except Exception:
-        return "Görünüşe göre bir sinyal kesintisi var. Groq anahtarını doğru girdiğine emin miyiz?"
+    except:
+        return "Matris bağlantısı koptu. API anahtarını tazelemelisiniz."
 
-# Arayüz
 st.title("🤖 JARVIS")
-st.caption("Cloud Matrix | Unauthorized access is strictly prohibited.")
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+st.markdown("<p style='text-align: left; color: gray; font-size: 14px; margin-top: -20px;'>ALPARSLAN INDUSTRIES</p>", unsafe_allow_html=True)
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
-if prompt := st.chat_input("Bir komut girin..."):
+if prompt := st.chat_input("..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
 
     with st.chat_message("assistant"):
-        response = jarvis_brain(prompt)
+        response = jarvis_brain(prompt, alay_orani)
         st.write(response)
     st.session_state.messages.append({"role": "assistant", "content": response})
+
 
 
 

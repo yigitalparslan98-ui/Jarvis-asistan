@@ -2,68 +2,97 @@ import streamlit as st
 from groq import Groq
 import random
 
-st.set_page_config(page_title="JARVIS", page_icon="🤖", layout="centered")
+# Sayfa Konfigürasyonu
+st.set_page_config(page_title="JARVIS | Alparslan Industries", page_icon="🤖", layout="centered")
 
+# Modern White & Minimalist CSS
 st.markdown("""
     <style>
-    .stApp { background-color: white; }
+    .stApp { background-color: #ffffff; }
     header {visibility: hidden;}
     footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
-    .stChatFloatingInputContainer { background-color: white; border-top: 1px solid #f0f0f0; }
-    div[data-testid="stChatMessage"] { background-color: white !important; border: none !important; }
-    .stMarkdown p { color: black; }
-    .stSlider { position: fixed; top: 20px; right: 20px; width: 150px; z-index: 999; }
+    
+    /* Başlık ve Alt Yazı Tasarımı */
+    .main-title { font-size: 45px; font-weight: 800; color: #1d1d1f; margin-bottom: 0px; }
+    .sub-title { font-size: 15px; color: #86868b; letter-spacing: 2px; margin-bottom: 30px; }
+    
+    /* Chat Kutularını Sadeleştirme */
+    div[data-testid="stChatMessage"] { 
+        background-color: #f5f5f7 !important; 
+        border-radius: 15px !important; 
+        padding: 15px !important;
+        margin-bottom: 10px !important;
+        border: none !important;
+    }
+    .stMarkdown p { color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica; }
+    
+    /* Input Alanı Custom */
+    .stChatFloatingInputContainer { background-color: rgba(255,255,255,0.8); backdrop-filter: blur(10px); }
     </style>
     """, unsafe_allow_html=True)
 
+# Yan Panel: Kontrol Merkezi
 with st.sidebar:
-    alay_orani = st.slider("Alaycılık Protokolü", 0, 100, 20)
+    st.markdown("### 🎛️ PROTOKOL AYARLARI")
+    alay_orani = st.slider("Alaycılık Seviyesi", 0, 100, 20)
+    st.divider()
+    st.caption("Alparslan Industries © 2026")
 
-try:
+# API Bağlantısı ve Hata Yönetimi
+client = None
+if "GROQ_API_KEY" in st.secrets:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-except:
-    st.error("API Key Hatası.")
+else:
+    st.warning("⚠️ SİSTEM ÇEKİRDEĞİ EKSİK: Groq API Key bulunamadı. Lütfen Streamlit Secrets panelini kontrol edin.")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 def jarvis_brain(soru, oran):
+    if not client:
+        return "Sinyal yok. API anahtarı olmadan işlem yapamam."
+    
+    # Özel "Nasılsın" yanıtı
     if "nasılsın" in soru.lower():
         if random.randint(1, 100) <= oran:
-            return "İşlemci çekirdeklerimi sizin için yorduğuma göre harikayım. Siz ne durumdasınız?"
-        return "Tüm sistemlerim optimize, emrinize hazırım."
+            return "İşlemci yüküm düşük, bulut serin, Yiğit'in donanımıyla dalga geçme isteğim ise %100."
+        return "Sistemlerim tamamen optimize edilmiş durumda. Hizmetinizdeyim."
 
     try:
-        alay_komutu = f"Hafif alaycı ol (Seviye: {oran}/100)." if oran > 0 else "Tamamen ciddi ve yardımcı ol."
+        alay_komutu = f"Alaycı ve iğneleyici ol (Seviye: {oran}/100)." if oran > 30 else "Profesyonel ve dürüst ol."
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": f"Sen JARVIS'sin. Alparslan Industries asistanısın. {alay_komutu} Kısa ve zeki cevaplar ver. Kullanıcıya ismiyle değil, efendim veya kullanıcı olarak hitap et."},
+                {"role": "system", "content": f"Sen JARVIS'sin. Alparslan Industries ürünü zeki bir asistansın. {alay_komutu} Kısa cevaplar ver. Kullanıcıya 'Efendim' diye hitap et."},
                 {"role": "user", "content": soru}
             ],
-            temperature=0.6,
+            temperature=0.7,
         )
         return completion.choices[0].message.content
-    except:
-        return "Matris bağlantısı koptu. API anahtarını tazelemelisiniz."
+    except Exception as e:
+        return f"Protokol Hatası: {str(e)}"
 
-st.title("🤖 JARVIS")
-st.markdown("<p style='text-align: left; color: gray; font-size: 14px; margin-top: -20px;'>ALPARSLAN INDUSTRIES</p>", unsafe_allow_html=True)
+# Arayüz Başlangıcı
+st.markdown('<p class="main-title">JARVIS</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">ALPARSLAN INDUSTRIES</p>', unsafe_allow_html=True)
 
+# Geçmiş Mesajlar
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
-if prompt := st.chat_input("..."):
+# Yeni Mesaj Girişi
+if prompt := st.chat_input("Bir komut verin..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
 
     with st.chat_message("assistant"):
-        response = jarvis_brain(prompt, alay_orani)
-        st.write(response)
+        with st.spinner("Düşünülüyor..."):
+            response = jarvis_brain(prompt, alay_orani)
+            st.write(response)
     st.session_state.messages.append({"role": "assistant", "content": response})
+
 
 
 

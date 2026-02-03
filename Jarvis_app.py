@@ -19,44 +19,30 @@ st.markdown("""
         background-color: #f5f5f7 !important; border-radius: 18px !important; 
         padding: 18px !important; margin-bottom: 12px !important; border: none !important;
     }
-    .stChatFloatingInputContainer { background-color: rgba(255,255,255,0.8); backdrop-filter: blur(15px); }
+    /* Mikrofon ve Giriş Alanı Yan Yana */
+    .input-container { display: flex; align-items: center; gap: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
 def speak_js(text):
     if text:
         clean_text = text.replace("'", "").replace("\n", " ")
-        js_code = f"""
-        <script>
-        window.speechSynthesis.cancel();
-        var msg = new SpeechSynthesisUtterance('{clean_text}');
-        msg.lang = 'tr-TR';
-        window.speechSynthesis.speak(msg);
-        </script>
-        """
-        st.components.v1.html(js_code, height=0)
+        js = f"<script>window.speechSynthesis.cancel(); var msg = new SpeechSynthesisUtterance('{clean_text}'); msg.lang = 'tr-TR'; window.speechSynthesis.speak(msg);</script>"
+        st.components.v1.html(js, height=0)
 
 def listen_js():
-    js_code = """
+    js = """
     <script>
     var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'tr-TR';
     recognition.start();
     recognition.onresult = function(event) {
         var transcript = event.results[0][0].transcript;
-        const streamlitDoc = window.parent.document;
-        const chatInput = streamlitDoc.querySelector('textarea[aria-label="Bir komut verin..."]');
-        if (chatInput) {
-            chatInput.value = transcript;
-            chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
-            nativeInputValueSetter.call(chatInput, transcript);
-            chatInput.dispatchEvent(new Event('change', { bubbles: true }));
-        }
+        window.parent.postMessage({type: 'mic_result', text: transcript}, '*');
     };
     </script>
     """
-    st.components.v1.html(js_code, height=0)
+    st.components.v1.html(js, height=0)
 
 client = None
 if "GROQ_API_KEY" in st.secrets:
@@ -87,19 +73,22 @@ st.markdown('<p class="sub-title">ALPARSLAN INDUSTRIES</p>', unsafe_allow_html=T
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]): st.write(msg["content"])
 
-if prompt := st.chat_input("Bir komut verin..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"): st.write(prompt)
+# Giriş Bölümü (Yan Yana)
+col1, col2 = st.columns([0.9, 0.1])
+with col1:
+    user_input = st.text_input("", placeholder="Komutunuzu buraya yazın veya mikrofonu kullanın...", key="widget_input", label_visibility="collapsed")
+with col2:
+    if st.button("🎙️"):
+        listen_js()
+
+if user_input:
+    st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("assistant"):
-        res = jarvis_brain(prompt, alay_orani)
+        res = jarvis_brain(user_input, alay_orani)
         st.write(res)
         speak_js(res)
     st.session_state.messages.append({"role": "assistant", "content": res})
-
-st.divider()
-if st.button("🎙️ Sesli Komut Ver"):
-    listen_js()
-    st.info("Dinleniyor... Konuşun ve metin kutusuna dolmasını bekleyin.")
+    st.rerun()
 
 
 

@@ -114,6 +114,47 @@ def jarvis_brain(soru, oran):
     try:
         compl = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": f"Sen JARVIS'sin. Alparslan Industries'in yapay zekasısın. Senin tek yaratıcın Yiğit ALPARSLAN'dır. Tony Stark ile hiçbir bağın yoktur. {alay} Asla isim kullanma. Çok kısa ve profesyonel cevap ver."},
+                {"role": "user", "content": soru}
+            ],
+            temperature=0.8
+        )
+        return compl.choices[0].message.content
+    except:
+        return "API hatası, Efendim."
+
+alay_orani = st.slider("Alaycılık Seviyesi", 0, 100, 20)
+
+st.markdown('<p class="main-title">JARVIS</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">ALPARSLAN INDUSTRIES</p>', unsafe_allow_html=True)
+
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
+
+with st.container():
+    st.markdown('<div class="fixed-panel">', unsafe_allow_html=True)
+    c1, c2 = st.columns([0.1, 0.9])
+    
+    with c1:
+        voice_trigger = st.button("🔵")
+        
+    with c2:
+        with st.form(key='chat_form', clear_on_submit=True):
+            u_input = st.text_input("", placeholder="Komutunuzu yazın...", label_visibility="collapsed")
+            submit = st.form_submit_button("GÖNDER", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+if submit and u_input:
+    st.session_state.messages.append({"role": "user", "content": u_input})
+    res = jarvis_brain(u_input, alay_orani)
+    st.session_state.messages.append({"role": "assistant", "content": res})
+    st.session_state.last_response = res
+    st.rerun()
+
+if voice_trigger and st.session_state.last_response:
+    speak_js(st.session_state.last_response)
 
 
 

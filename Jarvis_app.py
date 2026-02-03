@@ -1,44 +1,37 @@
 import streamlit as st
 from groq import Groq
-import random
 
 st.set_page_config(page_title="JARVIS | Alparslan Industries", page_icon="🤖", layout="centered")
 
-# --- CSS İLE GÖRSEL TASARIM ---
+# --- CSS: TASARIM VE ANİMASYON ---
 st.markdown("""
     <style>
     .stApp { background-color: #ffffff; }
     header {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* DEVASA BAŞLIK */
+    /* DEVASA VE NET BAŞLIK */
     .main-title { 
-        font-size: 120px; /* İsteğin üzerine devasa yapıldı */
+        font-size: 130px; 
         font-weight: 900; 
         color: #1d1d1f; 
         text-align: center; 
-        margin-top: 20px; 
-        line-height: 1.1;
-        letter-spacing: -5px; 
-    }
-    
-    .sub-title { 
-        font-size: 24px; 
-        color: #86868b; 
-        text-align: center; 
-        letter-spacing: 8px; 
-        margin-bottom: 80px; 
-        font-weight: 600; 
+        margin-top: 50px; 
+        line-height: 1.0;
+        letter-spacing: 15px; /* Harfler arası iyice açıldı */
         text-transform: uppercase;
     }
     
-    /* Mesaj Baloncukları */
-    div[data-testid="stChatMessage"] { 
-        background-color: #f5f5f7 !important; border-radius: 18px !important; 
-        padding: 18px !important; margin-bottom: 12px !important; border: none !important;
+    .sub-title { 
+        font-size: 20px; 
+        color: #86868b; 
+        text-align: center; 
+        letter-spacing: 10px; 
+        margin-bottom: 60px; 
+        font-weight: 500;
     }
 
-    /* EN ALTA SABİTLENMİŞ PANEL (THE DOCK) */
+    /* ALT PANEL */
     .fixed-panel {
         position: fixed;
         bottom: 0;
@@ -46,101 +39,115 @@ st.markdown("""
         width: 100%;
         background-color: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
-        padding: 20px 15%; /* Kenarlardan boşluk */
+        padding: 25px 12%;
         border-top: 1px solid #e5e5e5;
         z-index: 9999;
         display: flex;
         align-items: center;
-        justify-content: center;
-        box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+        gap: 20px;
+    }
+
+    /* WINDOWS SES ORB'U BUTON OLARAK */
+    .stButton > button {
+        border-radius: 50% !important;
+        width: 60px !important;
+        height: 60px !important;
+        background: linear-gradient(135deg, #0078d4, #00bcf2) !important;
+        border: none !important;
+        box-shadow: 0 0 20px rgba(0, 120, 212, 0.6) !important;
+        transition: all 0.3s ease !important;
+        color: white !important;
+        font-size: 24px !important;
     }
     
-    /* Sayfa içeriğinin panelin altında kalmaması için boşluk */
-    .block-container { padding-bottom: 180px; }
+    .stButton > button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 30px rgba(0, 120, 212, 0.8) !important;
+    }
+
+    /* Mesaj Alanı Padding */
+    .block-container { padding-bottom: 200px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- SİSTEM ---
+# --- SİSTEM ALTYAPISI ---
 client = None
 if "GROQ_API_KEY" in st.secrets:
-    try: client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-    except: client = None
+    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 if "messages" not in st.session_state: st.session_state.messages = []
 
-# --- JS KONUŞMA ---
 def speak_js(text):
     if text:
         clean = text.replace("'", "").replace("\n", " ")
         st.components.v1.html(f"<script>window.speechSynthesis.cancel(); var msg = new SpeechSynthesisUtterance('{clean}'); msg.lang = 'tr-TR'; window.speechSynthesis.speak(msg);</script>", height=0)
 
-# --- BEYİN ---
 def jarvis_brain(soru, oran):
-    if not client: return "Sinyal yok."
-    alay = f"Alaycı ol (Seviye: {oran}/100)." if oran > 30 else "Profesyonel ol."
+    if not client: return "Bağlantı kesildi."
+    alay = f"Sarcastic and honest level {oran}/100." if oran > 30 else "Professional."
     try:
         compl = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "system", "content": f"Sen JARVIS'sin. {alay} Çok kısa cevap ver."}, {"role": "user", "content": soru}],
-            temperature=0.7,
+            messages=[{"role": "system", "content": f"Sen JARVIS'sin. {alay} Yiğit'e çok kısa ve sesli okunacak şekilde cevap ver."}, {"role": "user", "content": soru}],
+            temperature=0.8,
         )
         return compl.choices[0].message.content
-    except: return "Bağlantı hatası."
+    except: return "İşlemci aşırı ısındı Yiğit."
 
-# --- SAĞ ÜST SLIDER ---
-st.markdown("""<style>div[data-testid="stSlider"] { position: fixed; top: 20px; right: 20px; width: 200px; z-index: 10000; background: white; padding: 10px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }</style>""", unsafe_allow_html=True)
-alay_orani = st.slider("Alaycılık Modu", 0, 100, 20)
+# --- UI ---
+alay_orani = st.sidebar.slider("Alaycılık Modu", 0, 100, 20)
 
-# --- GÖRÜNÜM ---
 st.markdown('<p class="main-title">JARVIS</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">ALPARSLAN INDUSTRIES</p>', unsafe_allow_html=True)
 
-# Mesajları Göster
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]): st.write(msg["content"])
 
-# --- SABİT ALT PANEL (INPUT & MIC) ---
+# --- ALT PANEL: ORB VE PROMPT ---
 with st.container():
     st.markdown('<div class="fixed-panel">', unsafe_allow_html=True)
-    c1, c2 = st.columns([0.85, 0.15])
+    c1, c2 = st.columns([0.15, 0.85])
+    
     with c1:
-        # Enter'a basınca çalışması için form
-        with st.form(key='chat_form', clear_on_submit=True):
-            user_input = st.text_input("", placeholder="Komut verin...", label_visibility="collapsed")
-            submit = st.form_submit_button("GÖNDER", use_container_width=True)
+        # Mavi Orb burada buton görevi görüyor
+        orb_clicked = st.button("🔵") 
+        
     with c2:
-        # Mikrofon butonu
-        mic = st.button("🎙️")
+        with st.form(key='chat_form', clear_on_submit=True):
+            u_input = st.text_input("", placeholder="Komutunu yaz veya Orb'a basarak konuş...", label_visibility="collapsed")
+            submit = st.form_submit_button("SORGULA", use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- MANTIK ---
-if submit and user_input:
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    res = jarvis_brain(user_input, alay_orani)
-    st.session_state.messages.append({"role": "assistant", "content": res})
-    speak_js(res)
-    st.rerun()
+# --- ÇALIŞTIRMA MANTIĞI ---
 
-if mic:
-    # Mikrofon JS Kodu
+# 1. Yazılı Giriş
+if u_input or submit:
+    if u_input:
+        st.session_state.messages.append({"role": "user", "content": u_input})
+        res = jarvis_brain(u_input, alay_orani)
+        st.session_state.messages.append({"role": "assistant", "content": res})
+        speak_js(res)
+        st.rerun()
+
+# 2. Orb'a Basınca Dinleme (Sesli Giriş)
+if orb_clicked:
     js = """
     <script>
-    var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'tr-TR';
-    recognition.start();
-    recognition.onresult = function(e) {
-        var txt = e.results[0][0].transcript;
-        var inputs = window.parent.document.querySelectorAll('input[type="text"]');
-        if(inputs.length > 0) {
-            inputs[0].value = txt;
-            inputs[0].dispatchEvent(new Event('input', {bubbles: true}));
-            inputs[0].dispatchEvent(new Event('change', {bubbles: true}));
-        }
+    var rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    rec.lang = 'tr-TR';
+    rec.start();
+    rec.onresult = function(e) {
+        var t = e.results[0][0].transcript;
+        var inp = window.parent.document.querySelectorAll('input[type="text"]')[0];
+        inp.value = t;
+        inp.dispatchEvent(new Event('input', {bubbles: true}));
+        inp.dispatchEvent(new Event('change', {bubbles: true}));
     }
     </script>
     """
     st.components.v1.html(js, height=0)
-    st.toast("Dinleniyor...")
+    st.toast("Seni dinliyorum Yiğit...")
+
 
 
 

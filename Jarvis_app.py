@@ -145,7 +145,8 @@ if submit and u_input:
     st.rerun()
 
 if voice_trigger and st.session_state.last_response:
-    speak_js(st.session_
+    speak_js(st.session_)
+
 
 
 

@@ -9,17 +9,17 @@ st.markdown("""
     .stApp { background-color: #ffffff; }
     header {visibility: hidden;}
     footer {visibility: hidden;}
-    .main-title { font-size: 45px; font-weight: 800; color: #1d1d1f; margin-bottom: 0px; }
-    .sub-title { font-size: 15px; color: #86868b; letter-spacing: 2px; margin-bottom: 30px; }
+    .main-title { font-size: 65px; font-weight: 900; color: #1d1d1f; margin-bottom: 0px; letter-spacing: -2px; }
+    .sub-title { font-size: 16px; color: #86868b; letter-spacing: 3px; margin-bottom: 40px; font-weight: 500; }
     div[data-testid="stChatMessage"] { 
         background-color: #f5f5f7 !important; 
-        border-radius: 15px !important; 
-        padding: 15px !important;
-        margin-bottom: 10px !important;
+        border-radius: 18px !important; 
+        padding: 18px !important;
+        margin-bottom: 12px !important;
         border: none !important;
     }
-    .stMarkdown p { color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica; }
-    .stChatFloatingInputContainer { background-color: rgba(255,255,255,0.8); backdrop-filter: blur(10px); }
+    .stMarkdown p { color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .stChatFloatingInputContainer { background-color: rgba(255,255,255,0.8); backdrop-filter: blur(15px); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -39,8 +39,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 def jarvis_brain(soru, oran):
-    if not client:
-        return "Sinyal yok. API anahtarı olmadan işlem yapamam."
+    if not client: return "Sinyal yok. API anahtarı hatası."
     
     if "nasılsın" in soru.lower():
         if random.randint(1, 100) <= oran:
@@ -72,9 +71,8 @@ if prompt := st.chat_input("Bir komut verin..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.write(prompt)
-
     with st.chat_message("assistant"):
-        with st.spinner("Düşünülüyor..."):
+        with st.spinner(" "):
             response = jarvis_brain(prompt, alay_orani)
             st.write(response)
     st.session_state.messages.append({"role": "assistant", "content": response})

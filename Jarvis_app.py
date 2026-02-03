@@ -28,6 +28,19 @@ st.markdown("""
         font-weight: 500;
     }
 
+    .stSlider {
+        position: fixed;
+        top: 20px;
+        right: 30px;
+        width: 200px;
+        z-index: 10000;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 15px;
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
     .fixed-panel {
         position: fixed;
         bottom: 0;
@@ -50,19 +63,10 @@ st.markdown("""
         background: linear-gradient(135deg, #0078d4, #00bcf2) !important;
         border: none !important;
         box-shadow: 0 0 12px rgba(0, 120, 212, 0.3) !important;
-        transition: all 0.2s ease !important;
         color: white !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .stButton > button:hover {
-        transform: scale(1.1);
-        box-shadow: 0 0 20px rgba(0, 120, 212, 0.6) !important;
     }
 
-    .block-container { padding-bottom: 180px; }
+    .block-container { padding-bottom: 200px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -95,22 +99,24 @@ def speak_js(text):
 
 def jarvis_brain(soru, oran):
     if not client:
-        return "Bağlantı kurulamadı."
-    alay = f"Sarcastic level {oran}/100. Be honest and professional."
+        return "Sinyal yok."
+    alay = f"Sarcastic level {oran}/100. Be professional and honest."
     try:
         compl = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": f"Sen JARVIS'sin. {alay} Asla isim kullanma. Profesyonel, çok kısa ve öz cevap ver."},
+                {"role": "system", "content": f"Sen JARVIS'sin. {alay} Asla isim kullanma. Çok kısa ve öz cevap ver."},
                 {"role": "user", "content": soru}
             ],
             temperature=0.7,
         )
         return compl.choices[0].message.content
     except:
-        return "İşlem hatası."
+        return "API hatası oluştu."
 
-alay_orani = st.sidebar.slider("Alaycılık Modu", 0, 100, 20)
+with st.container():
+    alay_orani = st.slider("Alaycılık Seviyesi", 0, 100, 20)
+
 st.markdown('<p class="main-title">JARVIS</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">ALPARSLAN INDUSTRIES</p>', unsafe_allow_html=True)
 
@@ -123,7 +129,7 @@ with st.container():
     c1, c2 = st.columns([0.1, 0.9])
     
     with c1:
-        voice_trigger = st.button("🔵") 
+        voice_trigger = st.button("🔵")
         
     with c2:
         with st.form(key='chat_form', clear_on_submit=True):
@@ -139,7 +145,8 @@ if submit and u_input:
     st.rerun()
 
 if voice_trigger and st.session_state.last_response:
-    speak_js(st.session_state.last_response)
+    speak_js(st.session_
+
 
 
 

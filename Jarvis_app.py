@@ -28,7 +28,6 @@ st.markdown("""
         font-weight: 500;
     }
 
-    /* ALT PANEL */
     .fixed-panel {
         position: fixed;
         bottom: 0;
@@ -43,7 +42,7 @@ st.markdown("""
         align-items: center;
         gap: 15px;
     }
-    
+
     .stButton > button {
         border-radius: 50% !important;
         width: 42px !important;
@@ -75,31 +74,7 @@ if "messages" not in st.session_state: st.session_state.messages = []
 if "last_response" not in st.session_state: st.session_state.last_response = ""
 
 def speak_js(text):
-    if text:
-        clean = text.replace("'", "").replace("\n", " ")
-        js = f"""
-        <script>
-        window.speechSynthesis.cancel();
-        var msg = new SpeechSynthesisUtterance('{clean}');
-        msg.lang = 'tr-TR';
-        msg.rate = 0.85;  // Profesyonel ağırlık
-        msg.pitch = 0.75; // Robotik ton
-        window.speechSynthesis.speak(msg);
-        </script>
-        """
-        st.components.v1.html(js, height=0)
 
-def jarvis_brain(soru, oran):
-    if not client: return "Bağlantı kurulamadı."
-    alay = f"Sarcastic level {oran}/100. Be honest and professional."
-    try:
-        compl = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": f"Sen JARVIS'sin. {alay} Asla isim kullanma. Profesyonel, çok kısa ve öz cevap ver."},
-                {"role": "user", "content": soru}
-            ],
-            temperature=0.7,
 
 
 
